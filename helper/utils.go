@@ -129,3 +129,26 @@ func StructToMap(rec struct{}) map[string]interface{} {
 	}
 	return mapDataValue
 }
+
+// TagField return the field-tag (e.g. table-column-name) for mcorm tag
+func TagField(rec struct{}, fieldName string, tag string) string {
+	t := reflect.TypeOf(rec)
+	field, found := t.FieldByName(fieldName)
+	if !found {
+		return ""
+	}
+	//tagValue := field.Tag
+	return field.Tag.Get(tag)
+}
+
+// StructToTagMap function converts struct to map
+func StructToTagMap(rec struct{}, tag string) map[string]interface{} {
+	tagMapDataValue := map[string]interface{}{}
+	mapDataValue := StructToMap(rec)
+	// compose tagMapDataValue
+	for key, val := range mapDataValue {
+		tagField := TagField(rec, key, tag)
+		tagMapDataValue[tagField] = val
+	}
+	return tagMapDataValue
+}

@@ -487,7 +487,7 @@ func (model Model) ValidateRecordValue(modelRecordValue types.ActionParamType, t
 	return types.ValidateResponseType{Ok: true, Errors: errMsg}
 }
 
-// sql.DB CRUD methods [pg, sqlite3...]
+// Save method: sql.DB CRUD methods [pg, sqlite3...]
 // Save method performs create (new records) or update (for current/existing records) task
 func (model Model) Save(params types.CrudParamsType, options types.CrudOptionsType, tableFields []string) mcresponse.ResponseMessage {
 	// model specific params
