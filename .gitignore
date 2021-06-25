@@ -1,0 +1,34 @@
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+
+# Dependency directory
+# https://docs.npmjs.com/cli/shrinkwrap#caveats
+node_modules
+# data
+# db
+config/secure
+# src/config/secure
+# micros/mc-document/config/secure
+# packages/backup
+# config/constants.json
+# test/todos.js
+
+# test report
+# mochawesome-report
+
+.idea
+.vscode
+# /public/
+# public
+# dist
+
+project.md
+# apps/auth/lib/test.ts
+#tests
+tests/*.txt
