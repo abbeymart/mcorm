@@ -11,6 +11,7 @@ import (
 	"github.com/abbeymart/mcorm/types"
 	"github.com/asaskevich/govalidator"
 	"reflect"
+	"strings"
 )
 
 type EmailUserNameType struct {
@@ -119,37 +120,48 @@ func DataToValueParam2(rec interface{}) (types.ActionParamType, error) {
 }
 
 // StructToMap function converts struct to map
-func StructToMap(rec interface{}) map[string]interface{} {
+func StructToMap(rec interface{}) (map[string]interface{}, error) {
 	var mapDataValue map[string]interface{}
 	jsonRec, _ := json.Marshal(rec)
 	err := json.Unmarshal(jsonRec, &mapDataValue)
 	if err != nil {
-		return nil
+		return nil, errors.New("error computing struct to map")
 	}
-	return mapDataValue
+	return mapDataValue, nil
 }
 
 // TagField return the field-tag (e.g. table-column-name) for mcorm tag
-func TagField(rec interface{}, fieldName string, tag string) string {
+func TagField(rec interface{}, fieldName string, tag string) (string, error) {
 	t := reflect.TypeOf(rec)
-	field, found := t.FieldByName(fieldName)
+	// convert the first-letter to upper-case (public field)
+	field, found := t.FieldByName(strings.Title(fieldName))
 	if !found {
-		return ""
+		// check private field
+		field, found = t.FieldByName(fieldName)
+		if !found {
+			return "", errors.New("error retrieving tag-field")
+		}
 	}
 	//tagValue := field.Tag
-	return field.Tag.Get(tag)
+	return field.Tag.Get(tag), nil
 }
 
 // StructToTagMap function converts struct to map
-func StructToTagMap(rec interface{}, tag string) map[string]interface{} {
+func StructToTagMap(rec interface{}, tag string) (map[string]interface{}, error) {
 	tagMapDataValue := map[string]interface{}{}
-	mapDataValue := StructToMap(rec)
+	mapDataValue, err := StructToMap(rec)
+	if err != nil {
+		return nil, errors.New("error computing struct to map")
+	}
 	// compose tagMapDataValue
 	for key, val := range mapDataValue {
-		tagField := TagField(rec, key, tag)
+		tagField, tagErr := TagField(rec, key, tag)
+		if tagErr != nil {
+			return nil, errors.New(" error computing tag-field")
+		}
 		tagMapDataValue[tagField] = val
 	}
-	return tagMapDataValue
+	return tagMapDataValue, nil
 }
 
 // StructToFieldValues function converts struct to map
@@ -159,10 +171,16 @@ func StructToFieldValues(rec interface{}, tag string) ([]string, []interface{}, 
 	// validate rec as a struct{}
 	switch rec.(type) {
 	case struct{}:
-		mapDataValue := StructToMap(rec.(struct{}))
+		mapDataValue, err := StructToMap(rec.(struct{}))
+		if err != nil {
+			return nil, nil, errors.New("error computing struct to map")
+		}
 		// compose tagMapDataValue
 		for key, val := range mapDataValue {
-			tagField := TagField(rec.(struct{}), key, tag)
+			tagField, tagErr := TagField(rec.(struct{}), key, tag)
+			if tagErr != nil {
+				return nil, nil, errors.New(fmt.Sprintf("error retrieving tag-field: %v", key))
+			}
 			tableFields = append(tableFields, tagField)
 			fieldValues = append(fieldValues, val)
 		}

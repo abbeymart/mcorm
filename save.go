@@ -37,7 +37,13 @@ func (crud *Crud) Save(records []interface{}) mcresponse.ResponseMessage {
 	// compute actionParams from all the records
 	var actionParams types.ActionParamsType
 	for _, rec := range records {
-		structToTagMap := helper.StructToTagMap(rec, "mcorm")
+		structToTagMap, tagMapErr := helper.StructToTagMap(rec, "mcorm")
+		if tagMapErr != nil {
+			return mcresponse.GetResMessage("paramsError", mcresponse.ResponseMessageOptions{
+				Message: fmt.Sprintf("struc-to-tag-map-error: %v", tagMapErr.Error()),
+				Value:   nil,
+			})
+		}
 		actionParams = append(actionParams, structToTagMap)
 	}
 	// validate computed actionParams
@@ -545,10 +551,10 @@ func (crud *Crud) UpdateByIdLog(rec interface{}, updateRecs types.ActionParamsTy
 	})
 }
 
-func (crud *Crud) UpdateByParamLog(rec interface{}, updateRecs types.ActionParamsType, tableFields []string, upTableFields []string, tableFieldPointers []interface{}) mcresponse.ResponseMessage {
+func (crud *Crud) UpdateByParamLog(recParam interface{}, updateRecs types.ActionParamsType, tableFields []string, upTableFields []string, tableFieldPointers []interface{}) mcresponse.ResponseMessage {
 	// get records to update, for audit-log
 	if crud.LogUpdate && len(tableFields) == len(tableFieldPointers) {
-		getRes := crud.GetByParam(tableFields, tableFieldPointers)
+		getRes := crud.GetByParam(recParam)
 		value, _ := getRes.Value.(types.CrudResultType)
 		crud.CurrentRecords = value.TableRecords
 	}
