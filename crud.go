@@ -36,7 +36,7 @@ func NewCrud(params types.CrudParamsType, options types.CrudOptionsType) (crudIn
 	crudInstance.ProjectParams = params.ProjectParams
 	crudInstance.ExistParams = params.ExistParams
 	crudInstance.Token = params.Token
-	crudInstance.TaskName = params.TaskName
+	crudInstance.TaskType = params.TaskType
 	crudInstance.Skip = params.Skip
 	crudInstance.Limit = params.Limit
 

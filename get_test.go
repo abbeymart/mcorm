@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/abbeymart/mcdb"
 	"github.com/abbeymart/mcorm/types"
+	"github.com/abbeymart/mcorm/types/datatypes"
 	"github.com/abbeymart/mctest"
 	"testing"
 	"time"
@@ -50,6 +51,40 @@ func TestGet(t *testing.T) {
 		return
 	}
 
+
+	auditModel := types.ModelType{
+		TableName: "persons",
+		RecordDesc: map[string]types.FieldDescType{
+			"id": {
+				FieldType: datatypes.String,
+				FieldLength: 100,
+				FieldPattern: "",
+				AllowNull: false,
+				Unique: false,
+				Indexable: false,
+				PrimaryKey: false,
+				ValidateMessage: "Length must not be longer than 100",
+			},
+			"name": {
+				FieldType: datatypes.String,
+				FieldLength: 100,
+				FieldPattern: "",
+				AllowNull: false,
+				Unique: false,
+				Indexable: false,
+				PrimaryKey: false,
+				ValidateMessage: "Length must not be longer than 100",
+			},
+		},
+		Relations: nil,
+		TimeStamp: true,
+		ActorStamp: true,
+		ActiveStamp: true,
+		AlterSyncTable: true,
+	}
+
+	AuditModel := NewModel(auditModel)
+
 	getCrudParams := types.CrudParamsType{
 		AppDb:       dbc.DbConn,
 		TableName:   TestTable,
@@ -64,18 +99,20 @@ func TestGet(t *testing.T) {
 		Name: "should get records by Ids and return success:",
 		TestFunc: func() {
 			var (
-				//id            string
-				tableName     string
-				logRecords    interface{}
-				newLogRecords interface{}
-				logBy         string
-				logType       string
-				logAt         time.Time
+			//id            string
+			//tableName     string
+			//logRecords    interface{}
+			//newLogRecords interface{}
+			//logBy         string
+			//logType       string
+			//logAt         time.Time
 			)
-			var logRec AuditType
+			logRec := AuditType{}
+			// compute tableFields from model-struct{} => from the requester
+			//tableFields, _ := helper.StructToFieldValues(rec, "mcorm")
 			//tableFieldPointers := []interface{}{&id, &tableName, &logRecords, &newLogRecords, &logBy, &logType, &logAt}
-			tableFieldPointers := []interface{}{&logRec.Id, &tableName, &logRecords, &newLogRecords, &logBy, &logType, &logAt}
-			res := getCrud.GetById(GetTableFields, tableFieldPointers)
+			//tableFieldPointers := []interface{}{&logRec.Id, &logRec.TableName, &logRec.LogRecords, &logRec.NewLogRecords, &logRec.LogBy, &logRec.LogType, &logRec.LogAt}
+			res := AuditModel.Get(logRec, getCrudParams, TestCrudParamOptions)
 			fmt.Printf("get-by-id-response: %#v\n\n", res)
 
 			value, _ := res.Value.(types.CrudResultType)

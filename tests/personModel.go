@@ -6,7 +6,7 @@ package tests
 
 import (
 	"github.com/abbeymart/mcorm/types"
-	"github.com/abbeymart/mctypes/datatypes"
+	"github.com/abbeymart/mcorm/types/datatypes"
 )
 
 var PersonModel = types.ModelType{

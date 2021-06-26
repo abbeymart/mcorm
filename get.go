@@ -19,7 +19,17 @@ import (
 
 // GetById method fetches/gets/reads record(s) that met the specified record-id(s),
 // constrained by optional skip and limit parameters
-func (crud *Crud) GetById(tableFields []string, tableFieldPointers []interface{}) mcresponse.ResponseMessage {
+func (crud *Crud) GetById(recParam interface{}) mcresponse.ResponseMessage {
+	// validate recParam as a struct type
+	switch recParam.(type) {
+	case struct{}:
+		break
+	default:
+		return mcresponse.GetResMessage("paramsError", mcresponse.ResponseMessageOptions{
+			Message: fmt.Sprintf("The recParam type must be a struct{} object"),
+			Value:   nil,
+		})
+	}
 	// check cache
 	getCacheRes := mccache.GetHashCache(crud.TableName, crud.HashKey)
 	val, ok := getCacheRes.Value.([]interface{})
@@ -34,11 +44,11 @@ func (crud *Crud) GetById(tableFields []string, tableFieldPointers []interface{}
 			},
 		})
 	}
-	// SELECT/scan to tableFieldPointers, in order specified by the tableFields
-	// tableFields and tableFieldPointers length and order must match
-	if len(tableFields) != len(tableFieldPointers) {
+	// TODO: compute tableFields, from struct{} object, for query-string computation
+	tableFields, _, err := helper.StructToFieldValues(recParam, "mcorm")
+	if err != nil {
 		return mcresponse.GetResMessage("readError", mcresponse.ResponseMessageOptions{
-			Message: fmt.Sprintf("tableFields Count [%v] and tableFieldPointer Count [%v] must be the same", len(tableFields), len(tableFieldPointers)),
+			Message: fmt.Sprintf("Unable to compute tableFields"),
 			Value:   nil,
 		})
 	}
@@ -50,6 +60,9 @@ func (crud *Crud) GetById(tableFields []string, tableFieldPointers []interface{}
 		})
 	}
 	// include options: limit... TODO: sort?
+	if crud.Skip > 0 {
+		getQuery += fmt.Sprintf(" SKIP %v", crud.Skip)
+	}
 	if crud.Limit > 0 {
 		getQuery += fmt.Sprintf(" LIMIT %v", crud.Limit)
 	}
@@ -65,63 +78,36 @@ func (crud *Crud) GetById(tableFields []string, tableFieldPointers []interface{}
 	// check rows count
 	var rowCount = 0
 	var getResults []interface{}
-	var getResult = map[string]interface{}{}
+	//var getResult = map[string]interface{}{}
+	// TODO: compute jsonFields from model-struct{}
 	for rows.Next() {
-		if rowScanErr := rows.Scan(tableFieldPointers...); rowScanErr != nil {
+		rowScanErr := rows.Scan(&recParam)
+		if rowScanErr != nil {
 			return mcresponse.GetResMessage("readError", mcresponse.ResponseMessageOptions{
 				Message: fmt.Sprintf("Error reading/getting records[row-scan]: %v", rowScanErr.Error()),
 				Value:   nil,
 			})
-		} else {
-			// extract values from tableFieldPointers
-			for i, fieldPointer := range tableFieldPointers {
-				switch fieldPointer.(type) {
-				case *time.Time:
-					val := fieldPointer.(*time.Time)
-					getResult[tableFields[i]] = *val
-				case *string:
-					val := fieldPointer.(*string)
-					getResult[tableFields[i]] = *val
-				case *int:
-					val := fieldPointer.(*int)
-					getResult[tableFields[i]] = *val
-				case *float64:
-					val := fieldPointer.(*float64)
-					getResult[tableFields[i]] = *val
-				case *interface{}:
-					val := fieldPointer.(*interface{})
-					getResult[tableFields[i]] = *val
-				default:
-					// avoid panic, return unsupported type
-					return mcresponse.GetResMessage("readError", mcresponse.ResponseMessageOptions{
-						Message: fmt.Sprintf("Unsupportted fieldName [%v] type %v", tableFields[i], fieldPointer),
-						Value:   nil,
-					})
-				}
-			}
-			// getChan <- rowCount // pass the scanned result alert to getChan | will block until read
-			// get snapshot value from the pointer | transform value to json-value-format
-			jByte, jErr := json.Marshal(getResult)
-			if jErr != nil {
-				return mcresponse.GetResMessage("paramsError", mcresponse.ResponseMessageOptions{
-					Message: fmt.Sprintf("Error transforming result-value into json-value-format: %v", jErr.Error()),
-					Value:   nil,
-				})
-			}
-			var gValue map[string]interface{}
-			jErr = json.Unmarshal(jByte, &gValue)
-			if jErr != nil {
-				return mcresponse.GetResMessage("paramsError", mcresponse.ResponseMessageOptions{
-					Message: fmt.Sprintf("Error transforming result-value into json-value-format: %v", jErr.Error()),
-					Value:   nil,
-				})
-			}
-			getResults = append(getResults, gValue)
-			rowCount += 1
 		}
+		// get snapshot value (clone) from the pointer | transform value to json-value-format
+		jByte, jErr := json.Marshal(recParam)
+		if jErr != nil {
+			return mcresponse.GetResMessage("paramsError", mcresponse.ResponseMessageOptions{
+				Message: fmt.Sprintf("Error transforming result-value into json-value-format: %v", jErr.Error()),
+				Value:   nil,
+			})
+		}
+		var gValue map[string]interface{}
+		jErr = json.Unmarshal(jByte, &gValue)
+		if jErr != nil {
+			return mcresponse.GetResMessage("paramsError", mcresponse.ResponseMessageOptions{
+				Message: fmt.Sprintf("Error transforming result-value into json-value-format: %v", jErr.Error()),
+				Value:   nil,
+			})
+		}
+		getResults = append(getResults, gValue)
+		rowCount += 1
+
 	}
-	// close channel
-	//close(getChan)
 
 	if err := rows.Err(); err != nil {
 		return mcresponse.GetResMessage("readError", mcresponse.ResponseMessageOptions{
@@ -157,7 +143,7 @@ func (crud *Crud) GetById(tableFields []string, tableFieldPointers []interface{}
 	})
 }
 
-func (crud *Crud) GetById2(rec struct{}, tableFieldPointers []interface{}) mcresponse.ResponseMessage {
+func (crud *Crud) GetById2(rec interface{}, tableFieldPointers []interface{}) mcresponse.ResponseMessage {
 	// check cache
 	getCacheRes := mccache.GetHashCache(crud.TableName, crud.HashKey)
 	val, ok := getCacheRes.Value.([]interface{})
@@ -173,8 +159,13 @@ func (crud *Crud) GetById2(rec struct{}, tableFieldPointers []interface{}) mcres
 		})
 	}
 	// TODO: compute tableFields from model-struct{} => from the requester
-	tableFields, _ := helper.StructToFieldValues(rec, "mcorm")
-	//var tableFieldPointers []interface{}
+	tableFields, _, err := helper.StructToFieldValues(rec, "mcorm")
+	if err != nil {
+		return mcresponse.GetResMessage("readError", mcresponse.ResponseMessageOptions{
+			Message: fmt.Sprintf("Unable to compute tableFields"),
+			Value:   nil,
+		})
+	}
 	// SELECT/scan to tableFieldPointers, in order specified by the tableFields
 	// tableFields and tableFieldPointers length and order must match
 	if len(tableFields) != len(tableFieldPointers) {
@@ -191,6 +182,9 @@ func (crud *Crud) GetById2(rec struct{}, tableFieldPointers []interface{}) mcres
 		})
 	}
 	// include options: limit... TODO: sort?
+	if crud.Skip > 0 {
+		getQuery += fmt.Sprintf(" SKIP %v", crud.Skip)
+	}
 	if crud.Limit > 0 {
 		getQuery += fmt.Sprintf(" LIMIT %v", crud.Limit)
 	}
@@ -207,6 +201,14 @@ func (crud *Crud) GetById2(rec struct{}, tableFieldPointers []interface{}) mcres
 	var rowCount = 0
 	var getResults []interface{}
 	var getResult = map[string]interface{}{}
+	// TODO: compute jsonFields from model-struct{}
+	jsonFields, _, err := helper.StructToFieldValues(rec, "json")
+	if err != nil {
+		return mcresponse.GetResMessage("readError", mcresponse.ResponseMessageOptions{
+			Message: fmt.Sprintf("Unable to compute jsonFields"),
+			Value:   nil,
+		})
+	}
 	for rows.Next() {
 		if rowScanErr := rows.Scan(tableFieldPointers...); rowScanErr != nil {
 			return mcresponse.GetResMessage("readError", mcresponse.ResponseMessageOptions{
@@ -219,19 +221,19 @@ func (crud *Crud) GetById2(rec struct{}, tableFieldPointers []interface{}) mcres
 				switch fieldPointer.(type) {
 				case *time.Time:
 					val := fieldPointer.(*time.Time)
-					getResult[tableFields[i]] = *val
+					getResult[jsonFields[i]] = *val
 				case *string:
 					val := fieldPointer.(*string)
-					getResult[tableFields[i]] = *val
+					getResult[jsonFields[i]] = *val
 				case *int:
 					val := fieldPointer.(*int)
-					getResult[tableFields[i]] = *val
+					getResult[jsonFields[i]] = *val
 				case *float64:
 					val := fieldPointer.(*float64)
-					getResult[tableFields[i]] = *val
+					getResult[jsonFields[i]] = *val
 				case *interface{}:
 					val := fieldPointer.(*interface{})
-					getResult[tableFields[i]] = *val
+					getResult[jsonFields[i]] = *val
 				default:
 					// avoid panic, return unsupported type
 					return mcresponse.GetResMessage("readError", mcresponse.ResponseMessageOptions{
@@ -261,8 +263,6 @@ func (crud *Crud) GetById2(rec struct{}, tableFieldPointers []interface{}) mcres
 			rowCount += 1
 		}
 	}
-	// close channel
-	//close(getChan)
 
 	if err := rows.Err(); err != nil {
 		return mcresponse.GetResMessage("readError", mcresponse.ResponseMessageOptions{

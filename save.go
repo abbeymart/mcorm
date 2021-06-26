@@ -17,7 +17,7 @@ import (
 )
 
 // Save method creates new record(s) or updates existing record(s)
-func (crud *Crud) Save(records []struct{}) mcresponse.ResponseMessage {
+func (crud *Crud) Save(records []interface{}) mcresponse.ResponseMessage {
 	//  determine taskType from actionParams: create or update
 	//  iterate through actionParams: update createRecs, updateRecs & crud.recordIds
 	var (
@@ -27,7 +27,13 @@ func (crud *Crud) Save(records []struct{}) mcresponse.ResponseMessage {
 	)
 	// TODO: compute tableFields and actionParams from []struct{} and tag
 	// compute tableFields from the first record
-	tableFields, _ := helper.StructToFieldValues(records[0], "mcorm")
+	tableFields, _, err := helper.StructToFieldValues(records[0], "mcorm")
+	if err != nil {
+		return mcresponse.GetResMessage("readError", mcresponse.ResponseMessageOptions{
+			Message: fmt.Sprintf("Unable to compute tableFields"),
+			Value:   nil,
+		})
+	}
 	// compute actionParams from all the records
 	var actionParams types.ActionParamsType
 	for _, rec := range records {

@@ -102,7 +102,6 @@ func DataToValueParam(rec interface{}) (types.ActionParamType, error) {
 }
 
 func DataToValueParam2(rec interface{}) (types.ActionParamType, error) {
-
 	switch rec.(type) {
 	case struct{}:
 		dataValue := types.ActionParamType{}
@@ -120,7 +119,7 @@ func DataToValueParam2(rec interface{}) (types.ActionParamType, error) {
 }
 
 // StructToMap function converts struct to map
-func StructToMap(rec struct{}) map[string]interface{} {
+func StructToMap(rec interface{}) map[string]interface{} {
 	var mapDataValue map[string]interface{}
 	jsonRec, _ := json.Marshal(rec)
 	err := json.Unmarshal(jsonRec, &mapDataValue)
@@ -131,7 +130,7 @@ func StructToMap(rec struct{}) map[string]interface{} {
 }
 
 // TagField return the field-tag (e.g. table-column-name) for mcorm tag
-func TagField(rec struct{}, fieldName string, tag string) string {
+func TagField(rec interface{}, fieldName string, tag string) string {
 	t := reflect.TypeOf(rec)
 	field, found := t.FieldByName(fieldName)
 	if !found {
@@ -142,7 +141,7 @@ func TagField(rec struct{}, fieldName string, tag string) string {
 }
 
 // StructToTagMap function converts struct to map
-func StructToTagMap(rec struct{}, tag string) map[string]interface{} {
+func StructToTagMap(rec interface{}, tag string) map[string]interface{} {
 	tagMapDataValue := map[string]interface{}{}
 	mapDataValue := StructToMap(rec)
 	// compose tagMapDataValue
@@ -154,15 +153,22 @@ func StructToTagMap(rec struct{}, tag string) map[string]interface{} {
 }
 
 // StructToFieldValues function converts struct to map
-func StructToFieldValues(rec struct{}, tag string) ([]string, []interface{}) {
+func StructToFieldValues(rec interface{}, tag string) ([]string, []interface{}, error) {
 	var tableFields []string
 	var fieldValues []interface{}
-	mapDataValue := StructToMap(rec)
-	// compose tagMapDataValue
-	for key, val := range mapDataValue {
-		tagField := TagField(rec, key, tag)
-		tableFields = append(tableFields, tagField)
-		fieldValues = append(fieldValues, val)
+	// validate rec as a struct{}
+	switch rec.(type) {
+	case struct{}:
+		mapDataValue := StructToMap(rec.(struct{}))
+		// compose tagMapDataValue
+		for key, val := range mapDataValue {
+			tagField := TagField(rec.(struct{}), key, tag)
+			tableFields = append(tableFields, tagField)
+			fieldValues = append(fieldValues, val)
+		}
+		return tableFields, fieldValues, nil
+	default:
+		return nil, nil, errors.New("invalid type - requires parameter of type struct only")
 	}
-	return tableFields, fieldValues
+
 }

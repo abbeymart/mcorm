@@ -31,13 +31,13 @@ type CrudDelete interface {
 
 // Model object description
 type Model struct {
-	TaskName string
+	TaskType string
 	types.ModelType
 }
 
 // NewModel constructor: for table structure definition
-func NewModel(model types.ModelType) types.ModelType {
-	result := types.ModelType{}
+func NewModel(model types.ModelType) Model {
+	result := Model{}
 	result.AppDb = model.AppDb
 	result.TableName = model.TableName
 	result.RecordDesc = model.RecordDesc
@@ -281,7 +281,7 @@ func (model Model) UpdateDefaultValue(recordValue types.ActionParamType) (setRec
 }
 
 // ValidateRecordValue method validate record-field-values based on model constraints and validation method
-func (model Model) ValidateRecordValue(modelRecordValue types.ActionParamType, taskName string) types.ValidateResponseType {
+func (model Model) ValidateRecordValue(modelRecordValue types.ActionParamType, TaskType string) types.ValidateResponseType {
 	// perform validation of model-record-value
 	// recommendation: use updated recordValue, defaultValues and setValues, prior to validation
 	// get recordValue transformed types
@@ -476,8 +476,8 @@ func (model Model) ValidateRecordValue(modelRecordValue types.ActionParamType, t
 	}
 
 	// perform user-defined recordValue validation
-	// get validate method for the recordValue task by taskName (e.g. registerUser, login, saveProfile etc.)
-	if modelValidateMethod, ok := model.ValidateMethods[taskName]; ok {
+	// get validate method for the recordValue task by TaskType (e.g. registerUser, login, saveProfile etc.)
+	if modelValidateMethod, ok := model.ValidateMethods[TaskType]; ok {
 		valRes := modelValidateMethod(modelRecordValue)
 		if !valRes.Ok {
 			var modelErrorMsg = ""
@@ -507,13 +507,13 @@ func (model Model) ValidateRecordValue(modelRecordValue types.ActionParamType, t
 
 // Save method: sql.DB CRUD methods [pg, sqlite3...]
 // Save method performs create (new records) or update (for current/existing records) task
-func (model Model) Save(records []struct{}, params types.CrudParamsType, options types.CrudOptionsType) mcresponse.ResponseMessage {
+func (model Model) Save(records []interface{}, params types.CrudParamsType, options types.CrudOptionsType) mcresponse.ResponseMessage {
 	// model specific params
 	params.TableName = model.TableName
-	model.TaskName = params.TaskName
-	if model.TaskName == "" {
+	model.TaskType = params.TaskType
+	if model.TaskType == "" {
 		return mcresponse.GetResMessage("paramsError", mcresponse.ResponseMessageOptions{
-			Message: "taskName is required.",
+			Message: "TaskType is required.",
 			Value:   nil,
 		})
 	}
@@ -524,7 +524,7 @@ func (model Model) Save(records []struct{}, params types.CrudParamsType, options
 			// update defaultValues and setValues, before/prior to save
 			modelRecordValue := model.UpdateDefaultValue(recordValue)
 			// validate actionParam-item (recordValue) field-value
-			validateRes := model.ValidateRecordValue(modelRecordValue, model.TaskName)
+			validateRes := model.ValidateRecordValue(modelRecordValue, model.TaskType)
 			if !validateRes.Ok || len(validateRes.Errors) > 0 {
 				return helper.GetParamsMessage(validateRes.Errors)
 			}
@@ -556,19 +556,19 @@ func (model Model) Save(records []struct{}, params types.CrudParamsType, options
 
 // Get method query the DB by record-id, defined query-parameter or all records, constrained
 // by skip, limit and projected-field-parameters
-func (model Model) Get(params types.CrudParamsType, options types.CrudOptionsType, tableFields []string, tableFieldPointers []interface{}) mcresponse.ResponseMessage {
+func (model Model) Get(rec interface{}, params types.CrudParamsType, options types.CrudOptionsType) mcresponse.ResponseMessage {
 	// model specific params
 	params.TableName = model.TableName
 
 	// instantiate Crud action
 	crud := NewCrud(params, options)
 	// TODO: perform get-task by RecordIds or QueryParams
- 	return crud.GetById(tableFields, tableFieldPointers)
+ 	return crud.GetById(rec)
 }
 
 // GetStream method query the DB by record-ids, defined query-parameter or all records, constrained
 // by skip, limit and projected-field-parameters, and stream the result
-func (model Model) GetStream(params types.CrudParamsType, options types.CrudOptionsType) mcresponse.ResponseMessage {
+func (model Model) GetStream(rec interface{}, params types.CrudParamsType, options types.CrudOptionsType) mcresponse.ResponseMessage {
 	// model specific params
 	params.TableName = model.TableName
 
