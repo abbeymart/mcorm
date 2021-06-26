@@ -483,13 +483,11 @@ func (crud *Crud) UpdateByParam(updateRecs types.ActionParamsType, tableFields [
 	})
 }
 
-func (crud *Crud) UpdateLog(updateRecs types.ActionParamsType, tableFields []string, upTableFields []string, tableFieldPointers []interface{}) mcresponse.ResponseMessage {
+func (crud *Crud) UpdateLog(rec interface{}, updateRecs types.ActionParamsType, upTableFields []string) mcresponse.ResponseMessage {
 	// get records to update, for audit-log
-	if crud.LogUpdate && len(tableFields) == len(tableFieldPointers) {
-		getRes := crud.GetById(tableFields, tableFieldPointers)
-		value, _ := getRes.Value.(types.CrudResultType)
-		crud.CurrentRecords = value.TableRecords
-	}
+	getRes := crud.GetById(rec)
+	value, _ := getRes.Value.(types.CrudResultType)
+	crud.CurrentRecords = value.TableRecords
 
 	// perform update
 	updateRes := crud.Update(updateRecs, upTableFields)
@@ -516,13 +514,11 @@ func (crud *Crud) UpdateLog(updateRecs types.ActionParamsType, tableFields []str
 	})
 }
 
-func (crud *Crud) UpdateByIdLog(updateRecs types.ActionParamsType, tableFields []string, upTableFields []string, tableFieldPointers []interface{}) mcresponse.ResponseMessage {
+func (crud *Crud) UpdateByIdLog(rec interface{}, updateRecs types.ActionParamsType, upTableFields []string) mcresponse.ResponseMessage {
 	// get records to update, for audit-log
-	if crud.LogUpdate && len(tableFields) == len(tableFieldPointers) {
-		getRes := crud.GetById(tableFields, tableFieldPointers)
-		value, _ := getRes.Value.(types.CrudResultType)
-		crud.CurrentRecords = value.TableRecords
-	}
+	getRes := crud.GetById(rec)
+	value, _ := getRes.Value.(types.CrudResultType)
+	crud.CurrentRecords = value.TableRecords
 
 	// perform update-by-id
 	updateRes := crud.UpdateById(updateRecs, upTableFields)
@@ -549,7 +545,7 @@ func (crud *Crud) UpdateByIdLog(updateRecs types.ActionParamsType, tableFields [
 	})
 }
 
-func (crud *Crud) UpdateByParamLog(updateRecs types.ActionParamsType, tableFields []string, upTableFields []string, tableFieldPointers []interface{}) mcresponse.ResponseMessage {
+func (crud *Crud) UpdateByParamLog(rec interface{}, updateRecs types.ActionParamsType, tableFields []string, upTableFields []string, tableFieldPointers []interface{}) mcresponse.ResponseMessage {
 	// get records to update, for audit-log
 	if crud.LogUpdate && len(tableFields) == len(tableFieldPointers) {
 		getRes := crud.GetByParam(tableFields, tableFieldPointers)

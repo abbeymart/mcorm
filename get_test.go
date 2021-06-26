@@ -51,35 +51,34 @@ func TestGet(t *testing.T) {
 		return
 	}
 
-
 	auditModel := types.ModelType{
 		TableName: "persons",
 		RecordDesc: map[string]types.FieldDescType{
 			"id": {
-				FieldType: datatypes.String,
-				FieldLength: 100,
-				FieldPattern: "",
-				AllowNull: false,
-				Unique: false,
-				Indexable: false,
-				PrimaryKey: false,
+				FieldType:       datatypes.String,
+				FieldLength:     100,
+				FieldPattern:    "",
+				AllowNull:       false,
+				Unique:          false,
+				Indexable:       false,
+				PrimaryKey:      false,
 				ValidateMessage: "Length must not be longer than 100",
 			},
 			"name": {
-				FieldType: datatypes.String,
-				FieldLength: 100,
-				FieldPattern: "",
-				AllowNull: false,
-				Unique: false,
-				Indexable: false,
-				PrimaryKey: false,
+				FieldType:       datatypes.String,
+				FieldLength:     100,
+				FieldPattern:    "",
+				AllowNull:       false,
+				Unique:          false,
+				Indexable:       false,
+				PrimaryKey:      false,
 				ValidateMessage: "Length must not be longer than 100",
 			},
 		},
-		Relations: nil,
-		TimeStamp: true,
-		ActorStamp: true,
-		ActiveStamp: true,
+		Relations:      nil,
+		TimeStamp:      true,
+		ActorStamp:     true,
+		ActiveStamp:    true,
 		AlterSyncTable: true,
 	}
 
@@ -98,23 +97,9 @@ func TestGet(t *testing.T) {
 	mctest.McTest(mctest.OptionValue{
 		Name: "should get records by Ids and return success:",
 		TestFunc: func() {
-			var (
-			//id            string
-			//tableName     string
-			//logRecords    interface{}
-			//newLogRecords interface{}
-			//logBy         string
-			//logType       string
-			//logAt         time.Time
-			)
 			logRec := AuditType{}
-			// compute tableFields from model-struct{} => from the requester
-			//tableFields, _ := helper.StructToFieldValues(rec, "mcorm")
-			//tableFieldPointers := []interface{}{&id, &tableName, &logRecords, &newLogRecords, &logBy, &logType, &logAt}
-			//tableFieldPointers := []interface{}{&logRec.Id, &logRec.TableName, &logRec.LogRecords, &logRec.NewLogRecords, &logRec.LogBy, &logRec.LogType, &logRec.LogAt}
 			res := AuditModel.Get(logRec, getCrudParams, TestCrudParamOptions)
 			fmt.Printf("get-by-id-response: %#v\n\n", res)
-
 			value, _ := res.Value.(types.CrudResultType)
 			fmt.Printf("get-by-id-value: %#v\n", value.TableRecords)
 			fmt.Printf("get-by-param-count: %v\n", value.RecordCount)
@@ -128,17 +113,8 @@ func TestGet(t *testing.T) {
 	mctest.McTest(mctest.OptionValue{
 		Name: "should get records by query-params and return success:",
 		TestFunc: func() {
-			var (
-				id            string
-				tableName     string
-				logRecords    interface{}
-				newLogRecords interface{}
-				logBy         string
-				logType       string
-				logAt         time.Time
-			)
-			tableFieldPointers := []interface{}{&id, &tableName, &logRecords, &newLogRecords, &logBy, &logType, &logAt}
-			res := getCrud.GetByParam(GetTableFields, tableFieldPointers)
+			logRec := AuditType{}
+			res := AuditModel.Get(logRec, getCrudParams, TestCrudParamOptions)
 			//fmt.Printf("get-by-param-response: %#v\n", res)
 			value, _ := res.Value.(types.CrudResultType)
 			fmt.Printf("get-by-param-value: %#v\n", value.TableRecords)
@@ -152,17 +128,10 @@ func TestGet(t *testing.T) {
 	mctest.McTest(mctest.OptionValue{
 		Name: "should get all records and return success:",
 		TestFunc: func() {
-			var (
-				id            string
-				tableName     string
-				logRecords    interface{}
-				newLogRecords interface{}
-				logBy         string
-				logType       string
-				logAt         time.Time
-			)
-			tableFieldPointers := []interface{}{&id, &tableName, &logRecords, &newLogRecords, &logBy, &logType, &logAt}
-			res := getCrud.GetAll(GetTableFields, tableFieldPointers)
+			logRec := AuditType{}
+			getCrudParams.QueryParams = types.QueryParamType{}
+			getCrudParams.RecordIds = []string{}
+			res := AuditModel.Get(logRec, getCrudParams, TestCrudParamOptions)
 			value, _ := res.Value.(types.CrudResultType)
 			fmt.Printf("get-by-all-value[0]: %#v\n", value.TableRecords[0])
 			fmt.Printf("get-by-all-value[1]: %#v\n", value.TableRecords[1])
@@ -175,19 +144,12 @@ func TestGet(t *testing.T) {
 	mctest.McTest(mctest.OptionValue{
 		Name: "should get all records by limit/skip(offset) and return success:",
 		TestFunc: func() {
-			var (
-				id            string
-				tableName     string
-				logRecords    interface{}
-				newLogRecords interface{}
-				logBy         string
-				logType       string
-				logAt         time.Time
-			)
+			logRec := AuditType{}
 			getCrud.Skip = 0
 			getCrud.Limit = 20
-			tableFieldPointers := []interface{}{&id, &tableName, &logRecords, &newLogRecords, &logBy, &logType, &logAt}
-			res := getCrud.GetAll(GetTableFields, tableFieldPointers)
+			getCrudParams.QueryParams = types.QueryParamType{}
+			getCrudParams.RecordIds = []string{}
+			res := AuditModel.Get(logRec, getCrudParams, TestCrudParamOptions)
 			value, _ := res.Value.(types.CrudResultType)
 			fmt.Printf("get-by-all-value[0]: %#v\n", value.TableRecords[0])
 			fmt.Printf("get-by-all-value[1]: %#v\n", value.TableRecords[1])
@@ -201,24 +163,11 @@ func TestGet(t *testing.T) {
 	mctest.McTest(mctest.OptionValue{
 		Name: "should get records by Id and return success[get-record method]:",
 		TestFunc: func() {
-			var (
-				id            string
-				tableName     string
-				logRecords    interface{}
-				newLogRecords interface{}
-				logBy         string
-				logType       string
-				logAt         time.Time
-			)
-			getCrud.RecordIds = GetIds
-			getCrud.QueryParams = types.QueryParamType{}
-			tableFieldPointers := []interface{}{&id, &tableName, &logRecords, &newLogRecords, &logBy, &logType, &logAt}
-			// get-record method params
-			getRecParams := types.GetCrudParamsType{
-				GetTableFields:     GetTableFields,
-				TableFieldPointers: tableFieldPointers,
-			}
-			res := getCrud.GetRecord(getRecParams)
+			logRec := AuditType{}
+			getCrudParams.RecordIds = GetIds
+			getCrudParams.QueryParams = types.QueryParamType{}
+			res := AuditModel.Get(logRec, getCrudParams, TestCrudParamOptions)
+			//fmt.Printf("get-by-param-response: %#v\n", res)
 			value, _ := res.Value.(types.CrudResultType)
 			fmt.Printf("get-by-all-count: %v\n", value.RecordCount)
 			mctest.AssertEquals(t, res.Code, "success", "get-task should return code: success")
@@ -229,24 +178,10 @@ func TestGet(t *testing.T) {
 	mctest.McTest(mctest.OptionValue{
 		Name: "should get records by params and return success[get-record method]:",
 		TestFunc: func() {
-			var (
-				id            string
-				tableName     string
-				logRecords    interface{}
-				newLogRecords interface{}
-				logBy         string
-				logType       string
-				logAt         time.Time
-			)
-			getCrud.RecordIds = []string{}
-			getCrud.QueryParams = GetParams
-			tableFieldPointers := []interface{}{&id, &tableName, &logRecords, &newLogRecords, &logBy, &logType, &logAt}
-			// get-record method params
-			getRecParams := types.GetCrudParamsType{
-				GetTableFields:     GetTableFields,
-				TableFieldPointers: tableFieldPointers,
-			}
-			res := getCrud.GetRecord(getRecParams)
+			logRec := AuditType{}
+			getCrudParams.RecordIds = []string{}
+			getCrudParams.QueryParams = GetParams
+			res := AuditModel.Get(logRec, getCrudParams, TestCrudParamOptions)
 			value, _ := res.Value.(types.CrudResultType)
 			fmt.Printf("get-by-all-value[0]: %#v\n", value.TableRecords[0])
 			fmt.Printf("get-by-all-value[1]: %#v\n", value.TableRecords[1])
@@ -259,27 +194,12 @@ func TestGet(t *testing.T) {
 	mctest.McTest(mctest.OptionValue{
 		Name: "should get all records and return success[get-record method]:",
 		TestFunc: func() {
-			var (
-				id            string
-				tableName     string
-				logRecords    interface{}
-				newLogRecords interface{}
-				logBy         string
-				logType       string
-				logAt         time.Time
-			)
-
-			getCrud.Skip = 0
-			getCrud.Limit = 20
-			getCrud.RecordIds = []string{}
-			getCrud.QueryParams = types.QueryParamType{}
-			tableFieldPointers := []interface{}{&id, &tableName, &logRecords, &newLogRecords, &logBy, &logType, &logAt}
-			// get-record method params
-			getRecParams := types.GetCrudParamsType{
-				GetTableFields:     GetTableFields,
-				TableFieldPointers: tableFieldPointers,
-			}
-			res := getCrud.GetRecord(getRecParams)
+			logRec := AuditType{}
+			getCrudParams.Skip = 0
+			getCrudParams.Limit = 20
+			getCrudParams.RecordIds = []string{}
+			getCrudParams.QueryParams = types.QueryParamType{}
+			res := AuditModel.Get(logRec, getCrudParams, TestCrudParamOptions)
 			value, _ := res.Value.(types.CrudResultType)
 			fmt.Printf("get-by-all-value[0]: %#v\n", value.TableRecords[0])
 			fmt.Printf("get-by-all-value[1]: %#v\n", value.TableRecords[1])
