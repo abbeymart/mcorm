@@ -121,17 +121,23 @@ func DataToValueParam2(rec interface{}) (types.ActionParamType, error) {
 
 // StructToMap function converts struct to map
 func StructToMap(rec interface{}) (map[string]interface{}, error) {
-	var mapDataValue map[string]interface{}
-	jsonRec, _ := json.Marshal(rec)
-	err := json.Unmarshal(jsonRec, &mapDataValue)
+	var mapData map[string]interface{}
+	// json record
+	jsonRec, err := json.Marshal(rec)
 	if err != nil {
-		return nil, errors.New("error computing struct to map")
+		return nil, errors.New(fmt.Sprintf("error computing struct to map: %v", err.Error()))
 	}
-	return mapDataValue, nil
+	// json-to-map
+	err = json.Unmarshal(jsonRec, &mapData)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("error computing struct to map: %v", err.Error()))
+	}
+	return mapData, nil
 }
 
 // TagField return the field-tag (e.g. table-column-name) for mcorm tag
 func TagField(rec interface{}, fieldName string, tag string) (string, error) {
+	// TODO: validate rec as struct{}
 	t := reflect.TypeOf(rec)
 	// convert the first-letter to upper-case (public field)
 	field, found := t.FieldByName(strings.Title(fieldName))
@@ -139,54 +145,47 @@ func TagField(rec interface{}, fieldName string, tag string) (string, error) {
 		// check private field
 		field, found = t.FieldByName(fieldName)
 		if !found {
-			return "", errors.New("error retrieving tag-field")
+			return "", errors.New(fmt.Sprintf("error retrieving tag-field for field-name: %v", fieldName))
 		}
 	}
 	//tagValue := field.Tag
 	return field.Tag.Get(tag), nil
 }
 
-// StructToTagMap function converts struct to map
+// StructToTagMap function converts struct to map (for crud-actionParams / records)
 func StructToTagMap(rec interface{}, tag string) (map[string]interface{}, error) {
-	tagMapDataValue := map[string]interface{}{}
-	mapDataValue, err := StructToMap(rec)
+	tagMapData := map[string]interface{}{}
+	mapData, err := StructToMap(rec)
 	if err != nil {
-		return nil, errors.New("error computing struct to map")
+		return nil, errors.New(fmt.Sprintf("error computing struct to map: %v", err.Error()))
 	}
-	// compose tagMapDataValue
-	for key, val := range mapDataValue {
+	// compose tagMapData
+	for key, val := range mapData {
 		tagField, tagErr := TagField(rec, key, tag)
 		if tagErr != nil {
-			return nil, errors.New(" error computing tag-field")
+			return nil, errors.New(fmt.Sprintf("error computing tag-field: %v", tagErr.Error()))
 		}
-		tagMapDataValue[tagField] = val
+		tagMapData[tagField] = val
 	}
-	return tagMapDataValue, nil
+	return tagMapData, nil
 }
 
-// StructToFieldValues function converts struct to map
+// StructToFieldValues function converts struct/map to map (for DB columns and values)
 func StructToFieldValues(rec interface{}, tag string) ([]string, []interface{}, error) {
 	var tableFields []string
 	var fieldValues []interface{}
-	// validate rec as a struct{}
-	switch rec.(type) {
-	case struct{}:
-		mapDataValue, err := StructToMap(rec.(struct{}))
-		if err != nil {
-			return nil, nil, errors.New("error computing struct to map")
-		}
-		// compose tagMapDataValue
-		for key, val := range mapDataValue {
-			tagField, tagErr := TagField(rec.(struct{}), key, tag)
-			if tagErr != nil {
-				return nil, nil, errors.New(fmt.Sprintf("error retrieving tag-field: %v", key))
-			}
-			tableFields = append(tableFields, tagField)
-			fieldValues = append(fieldValues, val)
-		}
-		return tableFields, fieldValues, nil
-	default:
-		return nil, nil, errors.New("invalid type - requires parameter of type struct only")
+	mapDataValue, err := StructToMap(rec)
+	if err != nil {
+		return nil, nil, errors.New("error computing struct to map")
 	}
-
+	// compose tagMapDataValue
+	for key, val := range mapDataValue {
+		tagField, tagErr := TagField(rec.(struct{}), key, tag)
+		if tagErr != nil {
+			return nil, nil, errors.New(fmt.Sprintf("error retrieving tag-field: %v", key))
+		}
+		tableFields = append(tableFields, tagField)
+		fieldValues = append(fieldValues, val)
+	}
+	return tableFields, fieldValues, nil
 }
