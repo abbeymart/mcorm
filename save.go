@@ -17,30 +17,50 @@ import (
 )
 
 // Save method creates new record(s) or updates existing record(s)
-func (crud *Crud) Save(tableFields []string) mcresponse.ResponseMessage {
+func (crud *Crud) Save(records []struct{}) mcresponse.ResponseMessage {
 	//  determine taskType from actionParams: create or update
 	//  iterate through actionParams: update createRecs, updateRecs & crud.recordIds
 	var (
 		createRecs types.ActionParamsType // records without id field-value
 		updateRecs types.ActionParamsType // records with id field-value
-		recIds     []string                 // capture recordIds for separate/multiple updates
+		recIds     []interface{}          // capture recordIds for separate/multiple updates
 	)
-	for _, rec := range crud.ActionParams {
+	// TODO: compute tableFields and actionParams from []struct{} and tag
+	// compute tableFields from the first record
+	tableFields, _ := helper.StructToFieldValues(records[0], "mcorm")
+	// compute actionParams from all the records
+	var actionParams types.ActionParamsType
+	for _, rec := range records {
+		structToTagMap := helper.StructToTagMap(rec, "mcorm")
+		actionParams = append(actionParams, structToTagMap)
+	}
+	// validate computed actionParams
+	if len(actionParams) < 1 {
+		return mcresponse.GetResMessage("paramsError", mcresponse.ResponseMessageOptions{
+			Message: "No records provided (actionParams)",
+			Value:   nil,
+		})
+	}
+	// compute records for insert/create or update operation
+	for _, rec := range actionParams {
 		// determine if record existed (update) or is new (create)
-		if fieldValue, ok := rec["id"]; ok && fieldValue != "" {
-			// validate fieldValue as string
+		if fieldValue, ok := rec["id"]; ok && fieldValue != nil {
+			// validate id-fieldValue as string or integer
 			switch fieldValue.(type) {
 			case string:
 				updateRecs = append(updateRecs, rec)
 				recIds = append(recIds, fieldValue.(string))
+			case int:
+				updateRecs = append(updateRecs, rec)
+				recIds = append(recIds, fieldValue.(int))
 			default:
-				// invalid fieldValue type (string)
+				// invalid fieldValue type (string | int)
 				return mcresponse.GetResMessage("paramsError", mcresponse.ResponseMessageOptions{
 					Message: fmt.Sprintf("Invalid fieldValue type for fieldName: id, in record: %v", rec),
 					Value:   nil,
 				})
 			}
-		} else if len(crud.ActionParams) == 1 && (len(crud.RecordIds) > 0 || len(crud.QueryParams) > 0) {
+		} else if len(actionParams) == 1 && (len(crud.RecordIds) > 0 || len(crud.QueryParams) > 0) {
 			updateRecs = append(updateRecs, rec)
 		} else {
 			createRecs = append(createRecs, rec)

@@ -28,6 +28,17 @@ func TestGet(t *testing.T) {
 	}
 	myDb.Options = mcdb.DbConnectOptions{}
 
+	type AuditType struct {
+		Id            string      `json:"id"`
+		TableName     string      `json:"tableName"`
+		LogRecords    interface{} `json:"logRecords"`
+		NewLogRecords interface{} `json:"newLogRecords"`
+		LogType       string      `json:"logType"`
+		LogBy         string      `json:"logBy"`
+		LogAt         time.Time   `json:"logAt"`
+		//dbcrud.AuditStampType
+	}
+
 	// db-connection
 	dbc, err := myDb.OpenPgxDbPool()
 	// defer dbClose
@@ -53,7 +64,7 @@ func TestGet(t *testing.T) {
 		Name: "should get records by Ids and return success:",
 		TestFunc: func() {
 			var (
-				id            string
+				//id            string
 				tableName     string
 				logRecords    interface{}
 				newLogRecords interface{}
@@ -61,7 +72,9 @@ func TestGet(t *testing.T) {
 				logType       string
 				logAt         time.Time
 			)
-			tableFieldPointers := []interface{}{&id, &tableName, &logRecords, &newLogRecords, &logBy, &logType, &logAt}
+			var logRec AuditType
+			//tableFieldPointers := []interface{}{&id, &tableName, &logRecords, &newLogRecords, &logBy, &logType, &logAt}
+			tableFieldPointers := []interface{}{&logRec.Id, &tableName, &logRecords, &newLogRecords, &logBy, &logType, &logAt}
 			res := getCrud.GetById(GetTableFields, tableFieldPointers)
 			fmt.Printf("get-by-id-response: %#v\n\n", res)
 
@@ -218,6 +231,7 @@ func TestGet(t *testing.T) {
 				logType       string
 				logAt         time.Time
 			)
+
 			getCrud.Skip = 0
 			getCrud.Limit = 20
 			getCrud.RecordIds = []string{}

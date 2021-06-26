@@ -152,3 +152,17 @@ func StructToTagMap(rec struct{}, tag string) map[string]interface{} {
 	}
 	return tagMapDataValue
 }
+
+// StructToFieldValues function converts struct to map
+func StructToFieldValues(rec struct{}, tag string) ([]string, []interface{}) {
+	var tableFields []string
+	var fieldValues []interface{}
+	mapDataValue := StructToMap(rec)
+	// compose tagMapDataValue
+	for key, val := range mapDataValue {
+		tagField := TagField(rec, key, tag)
+		tableFields = append(tableFields, tagField)
+		fieldValues = append(fieldValues, val)
+	}
+	return tableFields, fieldValues
+}
