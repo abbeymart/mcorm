@@ -109,6 +109,24 @@ func (model Model) GetChildTables() []string {
 	return childTables
 }
 
+// ComputeRequiredParams method computes the required (non-null) fields
+func (model Model) ComputeRequiredParams() []string {
+	var requiredFields []string
+	for field, fieldDesc := range model.RecordDesc {
+		var fieldDescType interface{} = fieldDesc
+		switch fieldDescType.(type) {
+			case types.FieldDescType:
+				if !fieldDesc.AllowNull {
+					requiredFields = append(requiredFields, field)
+				}
+				break
+		default:
+			continue
+		}
+	}
+	return requiredFields
+}
+
 // ComputeRecordValueType ComputeRecordValueType computes the corresponding standard/define types based on the record-fields types
 func (model Model) ComputeRecordValueType(recordValue types.ActionParamType) types.ValueToDataType {
 	computedType := types.ValueToDataType{}
@@ -489,7 +507,7 @@ func (model Model) ValidateRecordValue(modelRecordValue types.ActionParamType, t
 
 // Save method: sql.DB CRUD methods [pg, sqlite3...]
 // Save method performs create (new records) or update (for current/existing records) task
-func (model Model) Save(params types.CrudParamsType, options types.CrudOptionsType, tableFields []string) mcresponse.ResponseMessage {
+func (model Model) Save(records []struct{}, params types.CrudParamsType, options types.CrudOptionsType) mcresponse.ResponseMessage {
 	// model specific params
 	params.TableName = model.TableName
 	model.TaskName = params.TaskName
@@ -533,7 +551,7 @@ func (model Model) Save(params types.CrudParamsType, options types.CrudOptionsTy
 	// instantiate Crud action
 	crud := NewCrud(params, options)
 	// perform save-task
-	return crud.Save(tableFields)
+	return crud.Save(records)
 }
 
 // Get method query the DB by record-id, defined query-parameter or all records, constrained
@@ -544,8 +562,8 @@ func (model Model) Get(params types.CrudParamsType, options types.CrudOptionsTyp
 
 	// instantiate Crud action
 	crud := NewCrud(params, options)
-	// perform get-task
-	return crud.GetById(tableFields, tableFieldPointers)
+	// TODO: perform get-task by RecordIds or QueryParams
+ 	return crud.GetById(tableFields, tableFieldPointers)
 }
 
 // GetStream method query the DB by record-ids, defined query-parameter or all records, constrained
@@ -567,7 +585,7 @@ func (model Model) DeleteById(params types.CrudParamsType, options types.CrudOpt
 
 	// instantiate Crud action
 	crud := NewCrud(params, options)
-	// perform delete-task
+	// TODO: perform delete-task by RecordIds or QueryParams
 	return crud.DeleteById()
 }
 
