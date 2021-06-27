@@ -6,9 +6,11 @@ package types
 
 import (
 	"fmt"
+	"github.com/abbeymart/mcorm/types/datatypes"
 	"github.com/abbeymart/mctypes"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"go.mongodb.org/mongo-driver/mongo"
+	"time"
 )
 
 type RoleServiceType struct {
@@ -445,16 +447,17 @@ type ModelRelationType struct {
 }
 
 type ModelType struct {
-	AppDb           *pgxpool.Pool
-	TableName       string
-	RecordDesc      RecordDescType
-	TimeStamp       bool // auto-add: createdAt and updatedAt | default: true
-	ActorStamp      bool // auto-add: createdBy and updatedBy | default: true
-	ActiveStamp     bool // record active status, isActive (true | false) | default: true
-	Relations       []ModelRelationType
-	ComputedMethods ComputedMethodsType // model-level functions, e.g fullName(a, b: T): T
-	ValidateMethods ValidateMethodsType
-	AlterSyncTable  bool // create / alter table/collection and sync existing data, if there was a change to the table structure | default: true
+	AppDb            *pgxpool.Pool
+	TableName        string
+	RecordDesc       RecordDescType
+	IncludeBaseModel bool	// covers Id, Language, Desc, AppId, TimeStamp, ActorStamp & ActiveStamp
+	TimeStamp        bool	// auto-add: createdAt and updatedAt | default: true
+	ActorStamp       bool	// auto-add: createdBy and updatedBy | default: true
+	ActiveStamp      bool	// record active status, isActive (true | false) | default: true
+	Relations        []ModelRelationType
+	ComputedMethods  ComputedMethodsType	// model-level functions, e.g fullName(a, b: T): T
+	ValidateMethods  ValidateMethodsType
+	AlterSyncTable   bool	// create / alter table/collection and sync existing data, if there was a change to the table structure | default: true
 	// if alterSyncTable: false it will create/re-create the table, with no data sync
 }
 
@@ -474,4 +477,44 @@ type ModelCrudOptionsType struct {
 	UniqueFields   UniqueFieldsType    // composite unique-fields
 	PrimaryFields  []string            // composite primary-fields
 	RequiredFields []string            // may be computed from FieldDesc allowNull attributes
+}
+
+func defaultLanguage() interface{}  { return "en-US" }
+func defaultIsActive() interface{}  { return true }
+func defaultTimeStamp() interface{} { return time.Now() }
+
+var BaseModel = RecordDescType{
+	"id": FieldDescType{
+		FieldType: datatypes.UUID,
+	},
+	"language": FieldDescType{
+		FieldType:    datatypes.UUID,
+		FieldLength:  12,
+		AllowNull:    false,
+		DefaultValue: defaultLanguage,
+	},
+	"desc": FieldDescType{
+		FieldType: datatypes.String,
+	},
+	"isActive": FieldDescType{
+		FieldType:    datatypes.UUID,
+		AllowNull:    false,
+		DefaultValue: defaultIsActive,
+	},
+	"createdBy": FieldDescType{
+		FieldType: datatypes.UUID,
+	},
+	"updatedBy": FieldDescType{
+		FieldType: datatypes.UUID,
+	},
+	"createdAt": FieldDescType{
+		FieldType:    datatypes.DateTime,
+		DefaultValue: defaultTimeStamp,
+	},
+	"deletedAt": FieldDescType{
+		FieldType: datatypes.DateTime,
+	},
+	"appId": FieldDescType{
+		FieldType: datatypes.String,
+	},
 }
